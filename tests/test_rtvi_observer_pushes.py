@@ -73,6 +73,15 @@ class TestRTVIObserverPushes(unittest.IsolatedAsyncioTestCase):
 
         self.observer.send_rtvi_message.assert_not_awaited()
 
+    async def test_a_type_skipped_while_disabled_is_handled_once_enabled(self):
+        await self._push(VADUserStartedSpeakingFrame())
+        self.assertIn(VADUserStartedSpeakingFrame, self.observer._unhandled_frame_types)
+
+        self.observer._apply_config(RTVIConfigureObserverFrame(vad_user_speaking_enabled=True))
+        await self._push(VADUserStartedSpeakingFrame())
+
+        self.observer.send_rtvi_message.assert_awaited_once()
+
     async def test_aggregated_text_is_handled_once_it_has_gone_through_the_transport(self):
         frame = AggregatedTextFrame(text="hello", aggregated_by="sentence")
         transport = BaseOutputTransport(TransportParams())

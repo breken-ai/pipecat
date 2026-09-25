@@ -233,7 +233,8 @@ class RTVIObserver(BaseObserver):
         self._params = params or RTVIObserverParams()
 
         self._ignored_sources: set[FrameProcessor] = set(self._params.ignored_sources)
-        # Frame types no branch of on_push_frame() handles.
+        # Frame types no branch of on_push_frame() handles with the current
+        # params, so their frames are skipped until the params change.
         self._unhandled_frame_types: set[type[Frame]] = set()
 
         self._bot_transcription = ""
@@ -396,6 +397,8 @@ class RTVIObserver(BaseObserver):
         if frame.bot_llm_marker_enabled is not None:
             self._params.bot_llm_marker_enabled = frame.bot_llm_marker_enabled
             logger.debug(f"{self}: bot_llm_marker_enabled set to {frame.bot_llm_marker_enabled}")
+        # A frame type may be handled now.
+        self._unhandled_frame_types.clear()
 
     async def _logger_sink(self, message):
         """Logger sink so we can send system logs to RTVI clients."""
@@ -452,19 +455,16 @@ class RTVIObserver(BaseObserver):
         ):
             return
 
-        # A frame type that no branch handles is skipped from then on. That
-        # only works if each branch matches on the frame type alone: a
-        # setting that can change at runtime (e.g. through
-        # RTVIConfigureObserverFrame) is checked inside its branch, so its
-        # type is never mistaken for an unhandled one.
         if (
             isinstance(frame, (UserStartedSpeakingFrame, UserStoppedSpeakingFrame))
             and self._params.user_speaking_enabled
         ):
             await self._handle_interruptions(frame)
-        elif isinstance(frame, (VADUserStartedSpeakingFrame, VADUserStoppedSpeakingFrame)):
-            if self._params.vad_user_speaking_enabled:
-                await self._handle_vad_speaking(frame)
+        elif (
+            isinstance(frame, (VADUserStartedSpeakingFrame, VADUserStoppedSpeakingFrame))
+            and self._params.vad_user_speaking_enabled
+        ):
+            await self._handle_vad_speaking(frame)
         elif (
             isinstance(frame, (UserMuteStartedFrame, UserMuteStoppedFrame))
             and self._params.user_mute_enabled
@@ -492,18 +492,17 @@ class RTVIObserver(BaseObserver):
             await self.send_rtvi_message(RTVI.BotLLMStoppedMessage())
         elif isinstance(frame, LLMTextFrame) and self._params.bot_llm_enabled:
             await self._handle_llm_text_frame(frame)
-        elif isinstance(frame, LLMMarkerResponseFrame):
-            if self._params.bot_llm_marker_enabled:
-                await self.send_rtvi_message(
-                    RTVI.BotLLMMarkerMessage(
-                        data=RTVI.BotLLMMarkerMessageData(
-                            text=frame.marker or "",
-                            kind=frame.kind,
-                            raw=frame.raw,
-                            markers=list(frame.markers),
-                        )
+        elif isinstance(frame, LLMMarkerResponseFrame) and self._params.bot_llm_marker_enabled:
+            await self.send_rtvi_message(
+                RTVI.BotLLMMarkerMessage(
+                    data=RTVI.BotLLMMarkerMessageData(
+                        text=frame.marker or "",
+                        kind=frame.kind,
+                        raw=frame.raw,
+                        markers=list(frame.markers),
                     )
                 )
+            )
         elif isinstance(frame, TTSStartedFrame) and self._params.bot_tts_enabled:
             await self.send_rtvi_message(RTVI.BotTTSStartedMessage())
         elif isinstance(frame, TTSStoppedFrame) and self._params.bot_tts_enabled:

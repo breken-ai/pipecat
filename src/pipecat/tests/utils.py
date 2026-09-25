@@ -61,7 +61,8 @@ class HeartbeatsObserver(BaseObserver):
             heartbeat_callback: Async callback function to invoke when heartbeats are detected.
             **kwargs: Additional arguments passed to the parent observer.
         """
-        super().__init__(**kwargs)
+        # Heartbeats are watched as the target pushes them, not on their first push.
+        super().__init__(observe_every_push=True, **kwargs)
         self._target = target
         self._callback = heartbeat_callback
 

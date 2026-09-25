@@ -35,6 +35,15 @@ class LLMLogObserver(BaseObserver):
     and when it finishes.
     """
 
+    def __init__(self, **kwargs):
+        """Initialize the LLM log observer.
+
+        Args:
+            **kwargs: Additional arguments passed to parent class.
+        """
+        # Frames pushed into the LLM service are on a later hop than their first.
+        super().__init__(observe_every_push=True, **kwargs)
+
     async def on_push_frame(self, data: FramePushed):
         """Handle frame push events and log LLM-related activities.
 

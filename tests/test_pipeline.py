@@ -267,14 +267,14 @@ class TestPipelineWorker(unittest.IsolatedAsyncioTestCase):
             async def on_push_frame(self, data: FramePushed):
                 nonlocal frame_count_1
 
-                if isinstance(data.source, IdentityFilter) and isinstance(data.frame, TextFrame):
+                if isinstance(data.frame, TextFrame):
                     frame_count_1 += 1
 
         class CustomAddObserver2(BaseObserver):
             async def on_push_frame(self, data: FramePushed):
                 nonlocal frame_count_2
 
-                if isinstance(data.source, IdentityFilter) and isinstance(data.frame, TextFrame):
+                if isinstance(data.frame, TextFrame):
                     frame_count_2 += 1
 
         identity = IdentityFilter()

@@ -234,7 +234,8 @@ class StartupTimingObserver(BaseObserver):
                 If None, all non-internal processors are measured.
             **kwargs: Additional arguments passed to parent class.
         """
-        super().__init__(**kwargs)
+        # The StartFrame is timed at every processor it reaches.
+        super().__init__(observe_every_push=True, **kwargs)
         self._processor_types = processor_types
 
         # Map processor ID -> arrival info.

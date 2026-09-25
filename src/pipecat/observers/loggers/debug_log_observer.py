@@ -95,7 +95,8 @@ class DebugLogObserver(BaseObserver):
                 excluding binary data fields like 'audio', 'image', 'images'.
             **kwargs: Additional arguments passed to parent class.
         """
-        super().__init__(**kwargs)
+        # Every hop is logged.
+        super().__init__(observe_every_push=True, **kwargs)
 
         # Process frame filters
         self.frame_filters = {}

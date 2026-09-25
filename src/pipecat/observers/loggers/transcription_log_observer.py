@@ -31,6 +31,15 @@ class TranscriptionLogObserver(BaseObserver):
     unrelated transcription frames from other sources.
     """
 
+    def __init__(self, **kwargs):
+        """Initialize the transcription log observer.
+
+        Args:
+            **kwargs: Additional arguments passed to parent class.
+        """
+        # A transcription relayed by the STT service is on a later hop than its first.
+        super().__init__(observe_every_push=True, **kwargs)
+
     async def on_push_frame(self, data: FramePushed):
         """Handle frame push events and log transcription frames.
 

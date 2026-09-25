@@ -59,6 +59,8 @@ class FramePushed:
         frame: The frame being transferred.
         direction: The direction of the transfer (e.g., downstream or upstream).
         timestamp: The time when the frame was pushed, based on the pipeline clock.
+        first_push: Whether this is the first time the frame is pushed. A frame
+            is pushed again by every processor that passes it along.
     """
 
     source: "FrameProcessor"
@@ -66,6 +68,7 @@ class FramePushed:
     frame: Frame
     direction: "FrameDirection"
     timestamp: int
+    first_push: bool = True
 
 
 @dataclass
@@ -115,7 +118,28 @@ class BaseObserver(BaseObject):
     needing to inject processors into the pipeline structure. This enables
     non-intrusive monitoring capabilities such as frame logging, debugging,
     performance analysis, and analytics collection.
+
+    A frame is pushed again by every processor that passes it along. By
+    default an observer is told about a frame once, when it is first pushed.
+    An observer that wants every push, such as one that logs each hop or
+    picks frames by their source, is created with ``observe_every_push=True``.
     """
+
+    def __init__(self, *, observe_every_push: bool = False, **kwargs):
+        """Initialize the observer.
+
+        Args:
+            observe_every_push: Whether to observe every push of a frame,
+                rather than only its first. Defaults to False.
+            **kwargs: Additional arguments passed to the parent class.
+        """
+        super().__init__(**kwargs)
+        self._observe_every_push = observe_every_push
+
+    @property
+    def observe_every_push(self) -> bool:
+        """Whether the observer observes every push of a frame, not only the first."""
+        return self._observe_every_push
 
     async def on_process_frame(self, data: FrameProcessed):
         """Handle the event when a frame is being processed by a processor.
